@@ -3,7 +3,8 @@ import xarray
 import re
 import datetime
 from collections import defaultdict
-
+import pandas as pd
+import struct
 class RinexError(Exception):
     pass
 
@@ -49,6 +50,9 @@ def readheader(lines, rinexversion):
 
     headerlengths : list[int]
         List of length for the headers of each data block.
+
+    obstimes : list[datetime.datetime]
+        List of time of measurement for each measurement epoch.
 
     satlists : list[list[str]]
         List containing lists of satellites present in each block.
@@ -158,6 +162,13 @@ def _readheader_v21(lines):
     return header, headerlines, headerlengths, obstimes, satlists, satset
 
 
+def _converttofloat(numberstr):
+    try:
+        return float(numberstr)
+    except ValueError:
+        return np.nan
+
+
 def _readblocks_v21(lines, header, headerlines, headerlengths, satlists, satset):
     """ Read the lines of data.
 
@@ -184,22 +195,20 @@ def _readblocks_v21(lines, header, headerlines, headerlengths, satlists, satset)
     Returns
     -------
     systemdata : dict
-        Dict with a nobs x nsats x nobstypes nd-array for each satellite constellation containing the measurements. The
-        keys of the dict correspond to the systemletter as used in RINEX files (G for GPS, R for GLONASS, etc).
-
-        nobs is the number of observations in the RINEX data, nsats the number of visible satellites for the particular
-        system during the whole measurement period, and nobstypes is the number of different properties recorded.
+        Dict with data-arrays.
 
     systemsatlists : dict
-        Dict containing the full list of visible satellites during the whole measurement period for each satellite
-        constellation.
+        Dict with lists of visible satellites.
 
     prntoidx : dict
-        Dict which for each constellation contains a dict which translates the PRN number into the index of the
-        satellite in the systemdata array.
+        Dict with translation dicts.
 
     obstypes : dict
-        Dict containing the observables recorded for each satellite constellation.
+        Dict with observation types.
+
+    See also
+    --------
+    processrinexfile : The wrapper.
     """
     nobstypes = header['# / TYPES OF OBSERV'][0]
     rowpersat = 1 + header['# / TYPES OF OBSERV'][0] // 5
@@ -222,12 +231,15 @@ def _readblocks_v21(lines, header, headerlines, headerlengths, satlists, satset)
         prntoidx[letter] = {prn: idx for idx, prn in enumerate(systemsatlists[letter])}
         obstypes[letter] = header['# / TYPES OF OBSERV'][1:]  # Proofing for V3 functionality
 
+    colwidths=(14, 1, 1)*nobstypes
+    fmt = '14s 2x '*nobstypes
+    fieldstruct = struct.Struct(fmt)
+    parse = fieldstruct.unpack_from
 
     for iepoch, (headerstart, headerlength, satlist) in enumerate(zip(headerlines, headerlengths, satlists)):
         for i, sat in enumerate(satlist):
-            datastring = ''.join(["{:<80}".format(line) for line in lines[headerstart+headerlength+rowpersat*i:headerstart+headerlength+rowpersat*(i+1)]])
-
-            data = np.genfromtxt([datastring.encode('ascii')], delimiter=(14, 1, 1)*nobstypes)[0::3]
+            datastring = ''.join(["{:<80}".format(line.rstrip()) for line in lines[headerstart+headerlength+rowpersat*i:headerstart+headerlength+rowpersat*(i+1)]])
+            data = np.array([_converttofloat(number.decode('ascii')) for number in parse(datastring.encode('ascii'))])
 
             systemletter = sat[0]
             prn = int(sat[1:])
@@ -236,3 +248,57 @@ def _readblocks_v21(lines, header, headerlines, headerlengths, satlists, satset)
 
     return systemdata, systemsatlists, prntoidx, obstypes
 
+
+def processrinexfile(filename):
+    """ Process a RINEX file into python format
+
+    Parameters
+    ----------
+    filename : str
+        Filename of the rinex file
+
+    Returns
+    -------
+    systemdata : dict
+        Dict with a nobs x nsats x nobstypes nd-array for each satellite constellation containing the measurements. The
+        keys of the dict correspond to the systemletter as used in RINEX files (G for GPS, R for GLONASS, etc).
+
+        nobs is the number of observations in the RINEX data, nsats the number of visible satellites for the particular
+        system during the whole measurement period, and nobstypes is the number of different properties recorded.
+
+    systemsatlists : dict
+        Dict containing the full list of visible satellites during the whole measurement period for each satellite
+        constellation.
+
+    prntoidx : dict
+        Dict which for each constellation contains a dict which translates the PRN number into the index of the
+        satellite in the systemdata array.
+
+    obstypes : dict
+        Dict containing the observables recorded for each satellite constellation.
+
+    header : dict
+        Dict containing the header information from the RINEX file.
+
+    obstimes : list[datetime.datetime]
+        List of time of measurement for each measurement epoch.
+    """
+    rinexversion = getrinexversion(filename)
+
+    with open(filename, 'r') as f:
+        lines = f.read().splitlines(True)
+
+    try:
+        if '2.1' in rinexversion:
+            header, headerlines, headerlengths, obstimes, satlists, satset = _readheader_v21(lines)
+        else:
+            raise RinexError('RINEX v%s is not supported.' % rinexversion)
+    except KeyError as e:
+        raise RinexError('Missing required header %s' % str(e))
+
+    if '2.1' in rinexversion:
+        systemdata, systemsatlists, prntoidx, obstypes = _readblocks_v21(lines, header,
+                                                                         headerlines, headerlengths,
+                                                                         satlists, satset)
+
+    return systemdata, systemsatlists, prntoidx, obstypes, header, obstimes
