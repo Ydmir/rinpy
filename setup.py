@@ -11,7 +11,7 @@ if __name__ == '__main__':
         license = f.read()
 
     setup(
-        name='pygnss',
+        name='rinpy',
         version='0.1.0',
         description='Package for reading and handling multi GNSS data',
         long_description=readme,
