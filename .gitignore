@@ -8,3 +8,5 @@ docs/.static
 
 *~
 *.egg-info
+
+.idea/
