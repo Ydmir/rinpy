@@ -1,10 +1,9 @@
 import numpy as np
-import xarray
 import re
 import datetime
-from collections import defaultdict
-import pandas as pd
 import struct
+
+
 class RinexError(Exception):
     pass
 
@@ -249,7 +248,7 @@ def _readblocks_v21(lines, header, headerlines, headerlengths, satlists, satset)
     return systemdata, systemsatlists, prntoidx, obstypes
 
 
-def processrinexfile(filename):
+def processrinexfile(filename, savefile=None):
     """ Process a RINEX file into python format
 
     Parameters
@@ -300,5 +299,71 @@ def processrinexfile(filename):
         systemdata, systemsatlists, prntoidx, obstypes = _readblocks_v21(lines, header,
                                                                          headerlines, headerlengths,
                                                                          satlists, satset)
+
+    if savefile is not None:
+        saverinextonpz(savefile, systemdata, systemsatlists, prntoidx, obstypes, header, obstimes)
+
+    return systemdata, systemsatlists, prntoidx, obstypes, header, obstimes
+
+
+def saverinextonpz(savefile, systemdata, systemsatlists, prntoidx, obstypes, header, obstimes):
+    """ Save data to numpy's npz format.
+
+    Parameters
+    ----------
+    savefile : str
+        Path to where to save the data.
+
+    systemdata, systemsatlists, prntoidx, obstypes, header, obstimes: dict
+        Data as returned from processrinexfile
+
+    See Also
+    --------
+    processrinexfile
+    """
+    savestruct = {}
+    savestruct['systems'] = []
+
+    for systemletter in systemdata:
+        savestruct[systemletter+'systemdata'] = systemdata[systemletter]
+        savestruct[systemletter+'systemsatlists'] = systemsatlists[systemletter]
+        savestruct[systemletter+'prntoidx'] = prntoidx[systemletter]
+        savestruct[systemletter+'obstypes'] = obstypes[systemletter]
+        savestruct['systems'].append(systemletter)
+
+    savestruct['obstimes'] = obstimes
+    savestruct['header'] = header
+
+    np.savez_compressed(savefile, **savestruct)
+
+
+def loadrinexfromnpz(npzfile):
+    """ Load data previously stored in npz-format
+
+    Parameters
+    ----------
+    npzfile : str
+        Path to the stored data.
+
+    Returns
+    -------
+    systemdata, systemsatlists, prntoidx, obstypes, header, obstimes: dict
+        Data in the same format as returned by processrinexfile
+    """
+    rawdata = np.load(npzfile)
+
+    systemdata = {}
+    systemsatlists = {}
+    prntoidx = {}
+    obstypes = {}
+
+    for systemletter in rawdata['systems']:
+        systemdata[systemletter] = rawdata[systemletter+'systemdata']
+        systemsatlists[systemletter] = list(rawdata[systemletter+'systemsatlists'])
+        prntoidx[systemletter] = rawdata[systemletter+'prntoidx'].item()
+        obstypes[systemletter] = list(rawdata[systemletter+'obstypes'])
+
+    header = rawdata['header'].item()
+    obstimes = list(rawdata['obstimes'])
 
     return systemdata, systemsatlists, prntoidx, obstypes, header, obstimes
