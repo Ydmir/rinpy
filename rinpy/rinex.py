@@ -39,6 +39,9 @@ def readheader(lines, rinexversion):
     lines : list[str]
         List of each line in the RINEX file.
 
+    rinexversion : str
+        Version number for the RINEX file
+
     Returns
     -------
     header : dict
@@ -84,7 +87,7 @@ def _readheader_v21(lines):
             header[line[60:80].strip()] = line[:60]  # don't strip for fixed-width parsers
             # string with info
         else:
-            header[line[60:80].strip()] += " "+line[:60]
+            header[line[60:80].strip()] += "\n"+line[:60]
             # concatenate to the existing string
 
     header['# / TYPES OF OBSERV'] = header['# / TYPES OF OBSERV'].split()
@@ -137,7 +140,7 @@ def _readheader_v21(lines):
                     for s in range(numsats):
                         if s > 0 and s % 12 == 0:
                             i += 1
-                        sv.append(lines[i][32+(s%12)*3:35+(s%12)*3])
+                        sv.append(lines[i][32+(s % 12)*3:35+(s % 12)*3])
                     satlists.append(sv)
 
                 else:
@@ -147,7 +150,7 @@ def _readheader_v21(lines):
 
             else:  # there was a comment or some header info
                 flag = int(lines[i][28])
-                if(flag != 4):
+                if flag != 4:
                     print(flag)
                 skip = int(lines[i][30:32])
                 i += skip+1
@@ -230,14 +233,15 @@ def _readblocks_v21(lines, header, headerlines, headerlengths, satlists, satset)
         prntoidx[letter] = {prn: idx for idx, prn in enumerate(systemsatlists[letter])}
         obstypes[letter] = header['# / TYPES OF OBSERV'][1:]  # Proofing for V3 functionality
 
-    colwidths=(14, 1, 1)*nobstypes
     fmt = '14s 2x '*nobstypes
     fieldstruct = struct.Struct(fmt)
     parse = fieldstruct.unpack_from
 
     for iepoch, (headerstart, headerlength, satlist) in enumerate(zip(headerlines, headerlengths, satlists)):
         for i, sat in enumerate(satlist):
-            datastring = ''.join(["{:<80}".format(line.rstrip()) for line in lines[headerstart+headerlength+rowpersat*i:headerstart+headerlength+rowpersat*(i+1)]])
+            datastring = ''.join(["{:<80}".format(line.rstrip()) for line in
+                                  lines[headerstart+headerlength+rowpersat*i:headerstart+headerlength+rowpersat*(i+1)]])
+
             data = np.array([_converttofloat(number.decode('ascii')) for number in parse(datastring.encode('ascii'))])
 
             systemletter = sat[0]
@@ -255,6 +259,9 @@ def processrinexfile(filename, savefile=None):
     ----------
     filename : str
         Filename of the rinex file
+
+    savefile : str, optional
+        Name of file to save data to. If supplied the data is saved to a compressed npz file.
 
     Returns
     -------
