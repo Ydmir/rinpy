@@ -16,6 +16,9 @@ Installation
 
 Usage
 -----
+.. role:: python(code)
+   :language: python
+
 RinPy can be use used to read data from a RINEX file and store it in numpy's compressed npz-format, or to load it directly into the workspace.
 
 To load into memory and plot GPS SNR data for the L1 signal for satellite with PRN number 20:
@@ -45,14 +48,14 @@ Saving to and loading from file:
     rinpy.processrinexfile('GTGU2000.15o', 'GTGU2000.15o.npz')
     systemdata, systemsatlists, prntoidx, obstypes, header, obstimes = rinpy.loadrinexfromnpz('GTGU2000.15o.npz')
 
-Each of the outputs from `rinpy.processrinexfile` and `rinpy.loadrinexfromnpz` are dicts where the keys are the system letters used in the RINEX format, e.g.:
+Each of the outputs from :python:`rinpy.processrinexfile` and :python:`rinpy.loadrinexfromnpz` are dicts where the keys are the system letters used in the RINEX format, e.g.:
 
 - **G** - for GPS
 - **R** - for GLONASS
 - **E** - for Galileo
 - **S** - for SBAS
 
-For example `obstypes['R']` gives a list of observables for the GLONASS system.
+For example :python:`obstypes['R']` gives a list of observables for the GLONASS system.
 
 About
 -----
