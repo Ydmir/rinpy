@@ -100,7 +100,7 @@ def _readheader_v21x(lines):
     satlists = []
     satset = set()
 
-    century = int(timeoffirstobs[:2]+'00')
+    century = int(timeoffirstobs[0][:2]+'00')
     # This will result in an error if the record overlaps the end of the century. So if someone feels this is a major
     # problem, feel free to fix it. Personally can't bother to do it...
 
