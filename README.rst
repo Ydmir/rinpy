@@ -57,7 +57,8 @@ For example `obstypes['R']` gives a list of observables for the GLONASS system.
 About
 -----
 The code in this package is part of a larger code written for analysing GNSS SNR data for GNSS reflectometry, and is part of the work made for the paper:
-Strandberg, J., T. Hobiger, and R. Haas (2016), Improving GNSS-R sea level determination through inverse modeling of SNR data, Radio Science, 51, 1286–1296, doi:10.1002/2016RS006057. 
+
+Strandberg, J., T. Hobiger, and R. Haas (2016), *Improving GNSS-R sea level determination through inverse modeling of SNR data*, Radio Science, 51, 1286–1296, `doi:10.1002/2016RS006057 <http://dx.doi.org/10.1109/LGRS.2017.2722041>`_.
 
 License
 -------
