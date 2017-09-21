@@ -9,12 +9,13 @@ Author:
 .. contents::
 
 Installation
-=============
+------------
 ::
+
   python setup.py develop
 
 Usage
-=====
+-----
 RinPy can be use used to read data from a RINEX file and store it in numpy's compressed npz-format, or to load it directly into the workspace.
 
 To load into memory and plot GPS SNR data for the L1 signal for satellite with PRN number 20:
@@ -29,6 +30,8 @@ plt.plot(obstimes, systemdata['G'][:, prntoidx['G'][20], snr_idx])
 plt.xlabel('Time'); plt.ylabel('SNR')
 plt.show()
 ```
+
+![SNR plot](https://github.com/Ydmir/rinpy/blob/master/docs/figures/SNR.png)
 
 Saving to and loading from file:
 
@@ -47,7 +50,7 @@ Each of the outputs from `rinpy.processrinexfile` and `rinpy.loadrinexfromnpz` a
 For example `obstypes['R']` gives a list of observables for the GLONASS system.
 
 About
-=====
+-----
 The code in this package is part of a larger code written for analysing GNSS SNR data for GNSS reflectometry, and is part of the work made for the paper:
 Strandberg, J., Hobiger, T. och Haas, R. (2016) Inverse modelling of GNSS multipath for sea level measurements - initial results.
 
