@@ -21,6 +21,7 @@ RinPy can be use used to read data from a RINEX file and store it in numpy's com
 To load into memory and plot GPS SNR data for the L1 signal for satellite with PRN number 20:
 
 .. code:: python
+
     import rinpy
     from matplotlib import pyplot as plt
 
@@ -37,6 +38,7 @@ To load into memory and plot GPS SNR data for the L1 signal for satellite with P
 Saving to and loading from file:
 
 .. code:: python
+
     import rinpy
     rinpy.processrinexfile('GTGU2000.15o', 'GTGU2000.15o.npz')
     systemdata, systemsatlists, prntoidx, obstypes, header, obstimes = rinpy.loadrinexfromnpz('GTGU2000.15o.npz')
