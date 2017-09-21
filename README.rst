@@ -29,7 +29,8 @@ To load into memory and plot GPS SNR data for the L1 signal for satellite with P
     snr_idx = [idx for idx, type in enumerate(obstypes['G']) if 'S1' in type][0]
 
     plt.plot(obstimes, systemdata['G'][:, prntoidx['G'][20], snr_idx])
-    plt.xlabel('Time'); plt.ylabel('SNR')
+    plt.xlabel('Time')
+    plt.ylabel('SNR')
     plt.show()
 
 .. image:: https://github.com/Ydmir/rinpy/blob/master/docs/figures/SNR.png
@@ -40,6 +41,7 @@ Saving to and loading from file:
 .. code:: python
 
     import rinpy
+
     rinpy.processrinexfile('GTGU2000.15o', 'GTGU2000.15o.npz')
     systemdata, systemsatlists, prntoidx, obstypes, header, obstimes = rinpy.loadrinexfromnpz('GTGU2000.15o.npz')
 
