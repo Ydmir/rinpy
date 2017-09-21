@@ -61,5 +61,5 @@ Strandberg, J., Hobiger, T. och Haas, R. (2016) Inverse modelling of GNSS multip
 
 License
 -------
-RinPy is licensed under the MIT license - see the LICENSE file.
+RinPy is licensed under the MIT license - see the `LICENSE <https://github.com/Ydmir/rinpy/blob/master/LICENSE>`_ file.
 
