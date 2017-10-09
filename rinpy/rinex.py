@@ -106,7 +106,7 @@ def _readheader_v21x(lines):
     # This will result in an error if the record overlaps the end of the century. So if someone feels this is a major
     # problem, feel free to fix it. Personally can't bother to do it...
 
-    pattern = re.compile('(\s{2}\d{1}|\s{1}\d{2}){2}')
+    pattern = re.compile('(\s{2}\d|\s\d{2}){2}')
 
     while i < len(lines):
         if pattern.match(lines[i][:6]):  # then it's the first line in a header record
@@ -153,6 +153,7 @@ def _readheader_v21x(lines):
 
     return header, headerlines, headerlengths, obstimes, satlists, satset
 
+
 def _readheader_v3(lines):
     """ Read rinex version 3 """
 
@@ -192,7 +193,6 @@ def _readheader_v3(lines):
 
                 numsats = int(lines[i][32:33])  # Number of visible satellites %i3
 
-                # TODO: CONTINUE Editing for RINEX v3
                 sv = []
                 for j in range(numsats):
                     sv.append(lines[i+1+j][:3])
@@ -350,11 +350,10 @@ def _readblocks_v3(lines, header, headerlines, satlists, satset):
         if line[0] != ' ':
             systemletter = line[0]
             obstypes[systemletter] = line[1:].split()
-            obstypes[systemletter][0] = int(obstypes[systemletter][0]) #
+            obstypes[systemletter][0] = int(obstypes[systemletter][0])
         else:
             # It's a continuation line and we just add the obstypes
             obstypes[systemletter].extend(line[6:].split())
-
 
     observables = header['# / TYPES OF OBSERV'][6:].split()
 
@@ -385,10 +384,11 @@ def _readblocks_v3(lines, header, headerlines, satlists, satset):
         for i, sat in enumerate(satlist):
             datastring = lines[headerstart+1+i]
 
-            data = np.array([_converttofloat(number.decode('ascii')) for number in parser[letter](datastring.encode('ascii'))])
-
             systemletter = sat[0]
             prn = int(sat[1:])
+
+            data = np.array([_converttofloat(number.decode('ascii'))
+                             for number in parser[systemletter](datastring.encode('ascii'))])
 
             systemdata[systemletter][iepoch, prntoidx[systemletter][prn], :] = data
 
@@ -452,8 +452,8 @@ def processrinexfile(filename, savefile=None):
         except KeyError as e:
             raise RinexError('Missing required header %s' % str(e))
         systemdata, systemsatlists, prntoidx, obstypes = _readblocks_v3(lines, header,
-                                                                         headerlines,
-                                                                         satlists, satset)
+                                                                        headerlines,
+                                                                        satlists, satset)
     else:
         raise RinexError('RINEX v%s is not supported.' % rinexversion)
 
@@ -478,8 +478,7 @@ def saverinextonpz(savefile, systemdata, systemsatlists, prntoidx, obstypes, hea
     --------
     processrinexfile
     """
-    savestruct = {}
-    savestruct['systems'] = []
+    savestruct = {'systems': []}
 
     for systemletter in systemdata:
         savestruct[systemletter+'systemdata'] = systemdata[systemletter]
