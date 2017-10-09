@@ -65,6 +65,8 @@ def readheader(lines, rinexversion):
     try:
         if '2.1' in rinexversion:
             return _readheader_v21x(lines)
+        elif '3.1' in rinexversion:
+            return _readheader_v3(lines)
         else:
             raise RinexError('RINEX v%s is not supported.' % rinexversion)
 
