@@ -191,13 +191,14 @@ def _readheader_v3(lines):
                                                   second=int(float(second)),
                                                   microsecond=int(float(second) % 1 * 100000)))
 
-                numsats = int(lines[i][32:33])  # Number of visible satellites %i3
+                numsats = int(lines[i][33:35])  # Number of visible satellites %i3
 
                 sv = []
                 for j in range(numsats):
                     sv.append(lines[i+1+j][:3])
 
                 i += numsats+1
+                satlists.append(sv)
 
             else:  # there was a comment or some header info
                 flag = int(lines[i][31])
@@ -346,23 +347,19 @@ def _readblocks_v3(lines, header, headerlines, satlists, satset):
 
     obstypes = {}
     systemletter = ''
-    for line in header['# / TYPES OF OBSERV'].splitlines():
+    for line in header['SYS / # / OBS TYPES'].splitlines():
         if line[0] != ' ':
             systemletter = line[0]
-            obstypes[systemletter] = line[1:].split()
-            obstypes[systemletter][0] = int(obstypes[systemletter][0])
+            obstypes[systemletter] = line[6:].split()
         else:
             # It's a continuation line and we just add the obstypes
             obstypes[systemletter].extend(line[6:].split())
-
-    observables = header['# / TYPES OF OBSERV'][6:].split()
 
     systemletters = [key for key in obstypes]
     systemsatlists = {letter: [] for letter in systemletters}
 
     systemdata = {}
     prntoidx = {}
-    obstypes = {}
     parser = {}
 
     for sat in satset:
@@ -374,11 +371,10 @@ def _readblocks_v3(lines, header, headerlines, satlists, satset):
         nobstypes = len(obstypes[letter])
         systemdata[letter] = np.nan * np.zeros((nepochs, nsats, nobstypes))
         prntoidx[letter] = {prn: idx for idx, prn in enumerate(systemsatlists[letter])}
-        obstypes[letter] = observables  # Proofing for V3 functionality
 
-        fmt = '14s 2x '*nobstypes
+        fmt = '3x' + '14s 2x ' * (nobstypes-1) + '14s'
         fieldstruct = struct.Struct(fmt)
-        parser[letter] = fieldstruct.unpack_from
+        parser[letter] = fieldstruct
 
     for iepoch, (headerstart, satlist) in enumerate(zip(headerlines, satlists)):
         for i, sat in enumerate(satlist):
@@ -386,9 +382,8 @@ def _readblocks_v3(lines, header, headerlines, satlists, satset):
 
             systemletter = sat[0]
             prn = int(sat[1:])
-
             data = np.array([_converttofloat(number.decode('ascii'))
-                             for number in parser[systemletter](datastring.encode('ascii'))])
+                             for number in parser[systemletter].unpack_from(datastring.encode('ascii'))])
 
             systemdata[systemletter][iepoch, prntoidx[systemletter][prn], :] = data
 
