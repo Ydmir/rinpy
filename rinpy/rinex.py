@@ -366,6 +366,12 @@ def _readblocks_v3(lines, header, headerlines, satlists, satset):
         systemsatlists[sat[0]].append(int(sat[1:]))
 
     for letter in systemletters:
+
+        if len(systemsatlists[letter]) == 0:
+            # No data exist for the system. Delete and skip.
+            systemsatlists.pop(letter)
+            continue
+
         systemsatlists[letter].sort()
         nsats = len(systemsatlists[letter])
         nobstypes = len(obstypes[letter])
