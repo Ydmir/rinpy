@@ -302,6 +302,11 @@ def _readblocks_v21(lines, header, headerlines, headerlengths, satlists, satset)
 
             systemdata[systemletter][iepoch, prntoidx[systemletter][prn], :] = data
 
+    for letter in systemdata:
+        kept_observables = [i for i in range(len(obstypes[letter])) if np.sum(~np.isnan(systemdata[letter][:,:,i]))>0]
+        systemdata[letter] = systemdata[letter][:, :, kept_observables]
+        obstypes[letter] = [obstypes[letter][i] for i in kept_observables]
+
     return systemdata, systemsatlists, prntoidx, obstypes
 
 
