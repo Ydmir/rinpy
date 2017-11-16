@@ -469,6 +469,31 @@ def processrinexfile(filename, savefile=None):
     return systemdata, systemsatlists, prntoidx, obstypes, header, obstimes
 
 
+def separateobservables(systemdata, obstypes):
+    """
+    Parameters
+    ----------
+    systemdata : dict
+        Data dict as returned by processrinexfile, or loadrinexfromnpz.
+
+    obstypes : dict
+        Dict with observation types for each system as returned by processrinexfile, or loadrinexfromnpz.
+
+    Returns
+    -------
+    separatedsystemdata : dict
+        Dict for each system where the data for each observable is separated into its own dict. I.e. to access the P1
+        data for GPS from a RINEX2 file it is only necessary to write `separatedsystemdata['G']['C1']`.
+    """
+
+    separatedsystemdata = dict()
+    for systemletter in systemdata:
+        separatedsystemdata[systemletter] = dict()
+        for idx, obstype in enumerate(obstypes[systemletter]):
+            separatedsystemdata[systemletter][obstype] = systemdata[systemletter][:, :, idx]
+    return separatedsystemdata
+
+
 def saverinextonpz(savefile, systemdata, systemsatlists, prntoidx, obstypes, header, obstimes):
     """ Save data to numpy's npz format.
 

@@ -39,6 +39,21 @@ To load into memory and plot GPS SNR data for the L1 signal for satellite with P
 .. image:: https://github.com/Ydmir/rinpy/blob/master/docs/figures/SNR.png
    :alt: SNR plot
 
+The data for each observable can also be separated into dicts with the help of the function 'separateobservables'. I.e, an equivalent way of writing the previous code snippet would be:
+.. code:: python
+
+    import rinpy
+    from matplotlib import pyplot as plt
+
+    systemdata, systemsatlists, prntoidx, obstypes, header, obstimes = rinpy.processrinexfile('GTGU2000.15o')
+    systemdata = separateobservables(systemdata, obstypes)
+
+    plt.plot(obstimes, systemdata['G']['S1'][:, prntoidx['G'][20]])
+    # S1 must be changed to S1C if RINEX v3 is used.
+    plt.xlabel('Time')
+    plt.ylabel('SNR')
+    plt.show()
+
 Saving to and loading from file:
 
 .. code:: python
