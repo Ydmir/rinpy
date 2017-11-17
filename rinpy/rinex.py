@@ -99,7 +99,7 @@ def _readheader_v21x(lines):
     headerlines = []
     headerlengths = []
     obstimes = []
-    satlists = []
+    epochsatlists = []
     satset = set()
 
     century = int(timeoffirstobs[0][:2]+'00')
@@ -131,10 +131,10 @@ def _readheader_v21x(lines):
                         if s > 0 and s % 12 == 0:
                             i += 1
                         sv.append(lines[i][32+(s % 12)*3:35+(s % 12)*3])
-                    satlists.append(sv)
+                    epochsatlists.append(sv)
 
                 else:
-                    satlists.append([lines[i][32+s*3:35+s*3] for s in range(numsats)])
+                    epochsatlists.append([lines[i][32+s*3:35+s*3] for s in range(numsats)])
 
                 i += numsats*rowpersat+1
 
@@ -148,10 +148,10 @@ def _readheader_v21x(lines):
             # We have screwed something up and have to iterate to get to the next header row, or eventually the end.
             i += 1
 
-    for satlist in satlists:
+    for satlist in epochsatlists:
         satset = satset.union(satlist)
 
-    return header, headerlines, headerlengths, obstimes, satlists, satset
+    return header, headerlines, headerlengths, obstimes, epochsatlists, satset
 
 
 def _readheader_v3(lines):
@@ -174,7 +174,7 @@ def _readheader_v3(lines):
 
     headerlines = []
     obstimes = []
-    satlists = []
+    epochsatlists = []
     satset = set()
 
     while i < len(lines):
@@ -198,7 +198,7 @@ def _readheader_v3(lines):
                     sv.append(lines[i+1+j][:3])
 
                 i += numsats+1
-                satlists.append(sv)
+                epochsatlists.append(sv)
 
             else:  # there was a comment or some header info
                 flag = int(lines[i][31])
@@ -210,10 +210,10 @@ def _readheader_v3(lines):
             # We have screwed something up and have to iterate to get to the next header row, or eventually the end.
             i += 1
 
-    for satlist in satlists:
+    for satlist in epochsatlists:
         satset = satset.union(satlist)
 
-    return header, headerlines, obstimes, satlists, satset
+    return header, headerlines, obstimes, epochsatlists, satset
 
 
 def _converttofloat(numberstr):
@@ -223,7 +223,7 @@ def _converttofloat(numberstr):
         return np.nan
 
 
-def _readblocks_v21(lines, header, headerlines, headerlengths, satlists, satset):
+def _readblocks_v21(lines, header, headerlines, headerlengths, epochsatlists, satset):
     """ Read the lines of data.
 
     Parameters
@@ -290,7 +290,7 @@ def _readblocks_v21(lines, header, headerlines, headerlengths, satlists, satset)
     fieldstruct = struct.Struct(fmt)
     parse = fieldstruct.unpack_from
 
-    for iepoch, (headerstart, headerlength, satlist) in enumerate(zip(headerlines, headerlengths, satlists)):
+    for iepoch, (headerstart, headerlength, satlist) in enumerate(zip(headerlines, headerlengths, epochsatlists)):
         for i, sat in enumerate(satlist):
             datastring = ''.join(["{:<80}".format(line.rstrip()) for line in
                                   lines[headerstart+headerlength+rowpersat*i:headerstart+headerlength+rowpersat*(i+1)]])
@@ -310,7 +310,7 @@ def _readblocks_v21(lines, header, headerlines, headerlengths, satlists, satset)
     return observationdata, satlists, prntoidx, obstypes
 
 
-def _readblocks_v3(lines, header, headerlines, satlists, satset):
+def _readblocks_v3(lines, header, headerlines, epochsatlists, satset):
     """ Read the lines of data for rinex 3 files.
 
     Parameters
@@ -387,7 +387,7 @@ def _readblocks_v3(lines, header, headerlines, satlists, satset):
         fieldstruct = struct.Struct(fmt)
         parser[letter] = fieldstruct
 
-    for iepoch, (headerstart, satlist) in enumerate(zip(headerlines, satlists)):
+    for iepoch, (headerstart, satlist) in enumerate(zip(headerlines, epochsatlists)):
         for i, sat in enumerate(satlist):
             datastring = lines[headerstart+1+i]
 
@@ -445,21 +445,21 @@ def processrinexfile(filename, savefile=None):
 
     if '2.1' in rinexversion:
         try:
-            header, headerlines, headerlengths, obstimes, satlists, satset = _readheader_v21x(lines)
+            header, headerlines, headerlengths, obstimes, epochsatlists, satset = _readheader_v21x(lines)
         except KeyError as e:
             raise RinexError('Missing required header %s' % str(e))
 
         observationdata, satlists, prntoidx, obstypes = _readblocks_v21(lines, header,
                                                                          headerlines, headerlengths,
-                                                                         satlists, satset)
+                                                                         epochsatlists, satset)
     elif '3.' in rinexversion:
         try:
-            header, headerlines, obstimes, satlists, satset = _readheader_v3(lines)
+            header, headerlines, obstimes, epochsatlists, satset = _readheader_v3(lines)
         except KeyError as e:
             raise RinexError('Missing required header %s' % str(e))
         observationdata, satlists, prntoidx, obstypes = _readblocks_v3(lines, header,
                                                                         headerlines,
-                                                                        satlists, satset)
+                                                                        epochsatlists, satset)
     else:
         raise RinexError('RINEX v%s is not supported.' % rinexversion)
 
