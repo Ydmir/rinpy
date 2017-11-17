@@ -248,10 +248,10 @@ def _readblocks_v21(lines, header, headerlines, headerlengths, satlists, satset)
 
     Returns
     -------
-    systemdata : dict
+    observationdata : dict
         Dict with data-arrays.
 
-    systemsatlists : dict
+    satlists : dict
         Dict with lists of visible satellites.
 
     prntoidx : dict
@@ -270,20 +270,20 @@ def _readblocks_v21(lines, header, headerlines, headerlengths, satlists, satset)
     nepochs = len(headerlines)
 
     systemletters = set([letter for letter in set(''.join(satset)) if letter.isalpha()])
-    systemsatlists = {letter: [] for letter in systemletters}
+    satlists = {letter: [] for letter in systemletters}
 
-    systemdata = {}
+    observationdata = {}
     prntoidx = {}
     obstypes = {}
 
     for sat in satset:
-        systemsatlists[sat[0]].append(int(sat[1:]))
+        satlists[sat[0]].append(int(sat[1:]))
 
     for letter in systemletters:
-        systemsatlists[letter].sort()
-        nsats = len(systemsatlists[letter])
-        systemdata[letter] = np.nan * np.zeros((nepochs, nsats, nobstypes))
-        prntoidx[letter] = {prn: idx for idx, prn in enumerate(systemsatlists[letter])}
+        satlists[letter].sort()
+        nsats = len(satlists[letter])
+        observationdata[letter] = np.nan * np.zeros((nepochs, nsats, nobstypes))
+        prntoidx[letter] = {prn: idx for idx, prn in enumerate(satlists[letter])}
         obstypes[letter] = observables  # Proofing for V3 functionality
 
     fmt = '14s 2x '*nobstypes
@@ -300,14 +300,14 @@ def _readblocks_v21(lines, header, headerlines, headerlengths, satlists, satset)
             systemletter = sat[0]
             prn = int(sat[1:])
 
-            systemdata[systemletter][iepoch, prntoidx[systemletter][prn], :] = data
+            observationdata[systemletter][iepoch, prntoidx[systemletter][prn], :] = data
 
-    for letter in systemdata:
-        kept_observables = [i for i in range(len(obstypes[letter])) if np.sum(~np.isnan(systemdata[letter][:,:,i]))>0]
-        systemdata[letter] = systemdata[letter][:, :, kept_observables]
+    for letter in observationdata:
+        kept_observables = [i for i in range(len(obstypes[letter])) if np.sum(~np.isnan(observationdata[letter][:,:,i]))>0]
+        observationdata[letter] = observationdata[letter][:, :, kept_observables]
         obstypes[letter] = [obstypes[letter][i] for i in kept_observables]
 
-    return systemdata, systemsatlists, prntoidx, obstypes
+    return observationdata, satlists, prntoidx, obstypes
 
 
 def _readblocks_v3(lines, header, headerlines, satlists, satset):
@@ -332,10 +332,10 @@ def _readblocks_v3(lines, header, headerlines, satlists, satset):
 
     Returns
     -------
-    systemdata : dict
+    observationdata : dict
         Dict with data-arrays.
 
-    systemsatlists : dict
+    satlists : dict
         Dict with lists of visible satellites.
 
     prntoidx : dict
@@ -361,27 +361,27 @@ def _readblocks_v3(lines, header, headerlines, satlists, satset):
             obstypes[systemletter].extend(line[6:].split())
 
     systemletters = [key for key in obstypes]
-    systemsatlists = {letter: [] for letter in systemletters}
+    satlists = {letter: [] for letter in systemletters}
 
-    systemdata = {}
+    observationdata = {}
     prntoidx = {}
     parser = {}
 
     for sat in satset:
-        systemsatlists[sat[0]].append(int(sat[1:]))
+        satlists[sat[0]].append(int(sat[1:]))
 
     for letter in systemletters:
 
-        if len(systemsatlists[letter]) == 0:
+        if len(satlists[letter]) == 0:
             # No data exist for the system. Delete and skip.
-            systemsatlists.pop(letter)
+            satlists.pop(letter)
             continue
 
-        systemsatlists[letter].sort()
-        nsats = len(systemsatlists[letter])
+        satlists[letter].sort()
+        nsats = len(satlists[letter])
         nobstypes = len(obstypes[letter])
-        systemdata[letter] = np.nan * np.zeros((nepochs, nsats, nobstypes))
-        prntoidx[letter] = {prn: idx for idx, prn in enumerate(systemsatlists[letter])}
+        observationdata[letter] = np.nan * np.zeros((nepochs, nsats, nobstypes))
+        prntoidx[letter] = {prn: idx for idx, prn in enumerate(satlists[letter])}
 
         fmt = '3x' + '14s 2x ' * (nobstypes-1) + '14s'
         fieldstruct = struct.Struct(fmt)
@@ -396,9 +396,9 @@ def _readblocks_v3(lines, header, headerlines, satlists, satset):
             data = np.array([_converttofloat(number.decode('ascii'))
                              for number in parser[systemletter].unpack_from(datastring.encode('ascii'))])
 
-            systemdata[systemletter][iepoch, prntoidx[systemletter][prn], :] = data
+            observationdata[systemletter][iepoch, prntoidx[systemletter][prn], :] = data
 
-    return systemdata, systemsatlists, prntoidx, obstypes
+    return observationdata, satlists, prntoidx, obstypes
 
 
 def processrinexfile(filename, savefile=None):
@@ -414,20 +414,20 @@ def processrinexfile(filename, savefile=None):
 
     Returns
     -------
-    systemdata : dict
+    observationdata : dict
         Dict with a nobs x nsats x nobstypes nd-array for each satellite constellation containing the measurements. The
         keys of the dict correspond to the systemletter as used in RINEX files (G for GPS, R for GLONASS, etc).
 
         nobs is the number of observations in the RINEX data, nsats the number of visible satellites for the particular
         system during the whole measurement period, and nobstypes is the number of different properties recorded.
 
-    systemsatlists : dict
+    satlists : dict
         Dict containing the full list of visible satellites during the whole measurement period for each satellite
         constellation.
 
     prntoidx : dict
         Dict which for each constellation contains a dict which translates the PRN number into the index of the
-        satellite in the systemdata array.
+        satellite in the observationdata array.
 
     obstypes : dict
         Dict containing the observables recorded for each satellite constellation.
@@ -449,7 +449,7 @@ def processrinexfile(filename, savefile=None):
         except KeyError as e:
             raise RinexError('Missing required header %s' % str(e))
 
-        systemdata, systemsatlists, prntoidx, obstypes = _readblocks_v21(lines, header,
+        observationdata, satlists, prntoidx, obstypes = _readblocks_v21(lines, header,
                                                                          headerlines, headerlengths,
                                                                          satlists, satset)
     elif '3.' in rinexversion:
@@ -457,23 +457,23 @@ def processrinexfile(filename, savefile=None):
             header, headerlines, obstimes, satlists, satset = _readheader_v3(lines)
         except KeyError as e:
             raise RinexError('Missing required header %s' % str(e))
-        systemdata, systemsatlists, prntoidx, obstypes = _readblocks_v3(lines, header,
+        observationdata, satlists, prntoidx, obstypes = _readblocks_v3(lines, header,
                                                                         headerlines,
                                                                         satlists, satset)
     else:
         raise RinexError('RINEX v%s is not supported.' % rinexversion)
 
     if savefile is not None:
-        saverinextonpz(savefile, systemdata, systemsatlists, prntoidx, obstypes, header, obstimes)
+        saverinextonpz(savefile, observationdata, satlists, prntoidx, obstypes, header, obstimes)
 
-    return systemdata, systemsatlists, prntoidx, obstypes, header, obstimes
+    return observationdata, satlists, prntoidx, obstypes, header, obstimes
 
 
-def separateobservables(systemdata, obstypes):
+def separateobservables(observationdata, obstypes):
     """
     Parameters
     ----------
-    systemdata : dict
+    observationdata : dict
         Data dict as returned by processrinexfile, or loadrinexfromnpz.
 
     obstypes : dict
@@ -481,20 +481,20 @@ def separateobservables(systemdata, obstypes):
 
     Returns
     -------
-    separatedsystemdata : dict
+    separatedobservationdata : dict
         Dict for each system where the data for each observable is separated into its own dict. I.e. to access the P1
-        data for GPS from a RINEX2 file it is only necessary to write `separatedsystemdata['G']['C1']`.
+        data for GPS from a RINEX2 file it is only necessary to write `separatedobservationdata['G']['C1']`.
     """
 
-    separatedsystemdata = dict()
-    for systemletter in systemdata:
-        separatedsystemdata[systemletter] = dict()
+    separatedobservationdata = dict()
+    for systemletter in observationdata:
+        separatedobservationdata[systemletter] = dict()
         for idx, obstype in enumerate(obstypes[systemletter]):
-            separatedsystemdata[systemletter][obstype] = systemdata[systemletter][:, :, idx]
-    return separatedsystemdata
+            separatedobservationdata[systemletter][obstype] = observationdata[systemletter][:, :, idx]
+    return separatedobservationdata
 
 
-def saverinextonpz(savefile, systemdata, systemsatlists, prntoidx, obstypes, header, obstimes):
+def saverinextonpz(savefile, observationdata, satlists, prntoidx, obstypes, header, obstimes):
     """ Save data to numpy's npz format.
 
     Parameters
@@ -502,7 +502,7 @@ def saverinextonpz(savefile, systemdata, systemsatlists, prntoidx, obstypes, hea
     savefile : str
         Path to where to save the data.
 
-    systemdata, systemsatlists, prntoidx, obstypes, header, obstimes: dict
+    observationdata, satlists, prntoidx, obstypes, header, obstimes: dict
         Data as returned from processrinexfile
 
     See Also
@@ -511,9 +511,9 @@ def saverinextonpz(savefile, systemdata, systemsatlists, prntoidx, obstypes, hea
     """
     savestruct = {'systems': []}
 
-    for systemletter in systemdata:
-        savestruct[systemletter+'systemdata'] = systemdata[systemletter]
-        savestruct[systemletter+'systemsatlists'] = systemsatlists[systemletter]
+    for systemletter in observationdata:
+        savestruct[systemletter+'systemdata'] = observationdata[systemletter]
+        savestruct[systemletter+'systemsatlists'] = satlists[systemletter]
         savestruct[systemletter+'prntoidx'] = prntoidx[systemletter]
         savestruct[systemletter+'obstypes'] = obstypes[systemletter]
         savestruct['systems'].append(systemletter)
@@ -534,23 +534,23 @@ def loadrinexfromnpz(npzfile):
 
     Returns
     -------
-    systemdata, systemsatlists, prntoidx, obstypes, header, obstimes: dict
+    observationdata, satlists, prntoidx, obstypes, header, obstimes: dict
         Data in the same format as returned by processrinexfile
     """
     rawdata = np.load(npzfile)
 
-    systemdata = {}
-    systemsatlists = {}
+    observationdata = {}
+    satlists = {}
     prntoidx = {}
     obstypes = {}
 
     for systemletter in rawdata['systems']:
-        systemdata[systemletter] = rawdata[systemletter+'systemdata']
-        systemsatlists[systemletter] = list(rawdata[systemletter+'systemsatlists'])
+        observationdata[systemletter] = rawdata[systemletter+'systemdata']
+        satlists[systemletter] = list(rawdata[systemletter+'systemsatlists'])
         prntoidx[systemletter] = rawdata[systemletter+'prntoidx'].item()
         obstypes[systemletter] = list(rawdata[systemletter+'obstypes'])
 
     header = rawdata['header'].item()
     obstimes = list(rawdata['obstimes'])
 
-    return systemdata, systemsatlists, prntoidx, obstypes, header, obstimes
+    return observationdata, satlists, prntoidx, obstypes, header, obstimes

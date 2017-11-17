@@ -28,10 +28,10 @@ To load into memory and plot GPS SNR data for the L1 signal for satellite with P
     import rinpy
     from matplotlib import pyplot as plt
 
-    systemdata, systemsatlists, prntoidx, obstypes, header, obstimes = rinpy.processrinexfile('GTGU2000.15o')
+    observationdata, systemsatlists, prntoidx, obstypes, header, obstimes = rinpy.processrinexfile('GTGU2000.15o')
     snr_idx = [idx for idx, type in enumerate(obstypes['G']) if 'S1' in type][0]
 
-    plt.plot(obstimes, systemdata['G'][:, prntoidx['G'][20], snr_idx])
+    plt.plot(obstimes, observationdata['G'][:, prntoidx['G'][20], snr_idx])
     plt.xlabel('Time')
     plt.ylabel('SNR')
     plt.show()
@@ -46,10 +46,10 @@ The data for each observable can also be separated into dicts with the help of t
     import rinpy
     from matplotlib import pyplot as plt
 
-    systemdata, systemsatlists, prntoidx, obstypes, header, obstimes = rinpy.processrinexfile('GTGU2000.15o')
-    systemdata = separateobservables(systemdata, obstypes)
+    observationdata, systemsatlists, prntoidx, obstypes, header, obstimes = rinpy.processrinexfile('GTGU2000.15o')
+    observationdata = separateobservables(observationdata, obstypes)
 
-    plt.plot(obstimes, systemdata['G']['S1'][:, prntoidx['G'][20]])
+    plt.plot(obstimes, observationdata['G']['S1'][:, prntoidx['G'][20]])
     # S1 must be changed to S1C if RINEX v3 is used.
     plt.xlabel('Time')
     plt.ylabel('SNR')
@@ -62,7 +62,7 @@ Saving to and loading from file:
     import rinpy
 
     rinpy.processrinexfile('GTGU2000.15o', 'GTGU2000.15o.npz')
-    systemdata, systemsatlists, prntoidx, obstypes, header, obstimes = rinpy.loadrinexfromnpz('GTGU2000.15o.npz')
+    observationdata, systemsatlists, prntoidx, obstypes, header, obstimes = rinpy.loadrinexfromnpz('GTGU2000.15o.npz')
 
 Each of the outputs from :python:`rinpy.processrinexfile` and :python:`rinpy.loadrinexfromnpz` are dicts where the keys are the system letters used in the RINEX format, e.g.:
 
