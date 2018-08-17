@@ -294,13 +294,15 @@ def _readblocks_v21(lines, header, headerlines, headerlengths, epochsatlists, sa
         for i, sat in enumerate(satlist):
             datastring = ''.join(["{:<80}".format(line.rstrip()) for line in
                                   lines[headerstart+headerlength+rowpersat*i:headerstart+headerlength+rowpersat*(i+1)]])
+            try:
+                data = np.array([_converttofloat(number.decode('ascii')) for number in parse(datastring.encode('ascii'))])
 
-            data = np.array([_converttofloat(number.decode('ascii')) for number in parse(datastring.encode('ascii'))])
+                systemletter = sat[0]
+                prn = int(sat[1:])
 
-            systemletter = sat[0]
-            prn = int(sat[1:])
-
-            observationdata[systemletter][iepoch, prntoidx[systemletter][prn], :] = data
+                observationdata[systemletter][iepoch, prntoidx[systemletter][prn], :] = data
+            except struct.error:
+                continue
 
     for letter in observationdata:
         kept_observables = [i for i in range(len(obstypes[letter])) if np.sum(~np.isnan(observationdata[letter][:,:,i]))>0]
@@ -384,8 +386,7 @@ def _readblocks_v3(lines, header, headerlines, epochsatlists, satset):
         prntoidx[letter] = {prn: idx for idx, prn in enumerate(satlists[letter])}
 
         fmt = '3x' + '14s 2x ' * (nobstypes-1) + '14s'
-        fieldstruct = struct.Struct(fmt)
-        parser[letter] = fieldstruct
+        parser[letter] = struct.Struct(fmt)
 
     for iepoch, (headerstart, satlist) in enumerate(zip(headerlines, epochsatlists)):
         for i, sat in enumerate(satlist):
@@ -393,10 +394,20 @@ def _readblocks_v3(lines, header, headerlines, epochsatlists, satset):
 
             systemletter = sat[0]
             prn = int(sat[1:])
-            data = np.array([_converttofloat(number.decode('ascii'))
-                             for number in parser[systemletter].unpack_from(datastring.encode('ascii'))])
 
-            observationdata[systemletter][iepoch, prntoidx[systemletter][prn], :] = data
+            try:
+                data = np.array([_converttofloat(number.decode('ascii'))
+                                 for number in parser[systemletter].unpack_from(datastring.encode('ascii'))])
+
+                observationdata[systemletter][iepoch, prntoidx[systemletter][prn], :] = data
+            except struct.error:
+                continue
+                #print('Data loss for %s at epoch %i' % (sat, iepoch))
+
+    for letter in observationdata:
+        kept_observables = [i for i in range(len(obstypes[letter])) if np.sum(~np.isnan(observationdata[letter][:,:,i]))>0]
+        observationdata[letter] = observationdata[letter][:, :, kept_observables]
+        obstypes[letter] = [obstypes[letter][i] for i in kept_observables]
 
     return observationdata, satlists, prntoidx, obstypes
 
