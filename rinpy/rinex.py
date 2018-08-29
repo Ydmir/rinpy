@@ -32,6 +32,12 @@ def getrinexversion(filename):
 
 
 def readheader(lines, rinexversion):
+    # See no reason for keeping this public. Should have been private from the start.
+    print("WANING! Deprecated!")
+    return _readheader(lines, rinexversion)
+
+
+def _readheader(lines, rinexversion):
     """ Read and return header information for the RINEX file
 
     Parameters
@@ -51,7 +57,7 @@ def readheader(lines, rinexversion):
         List of starting line for the headers of each data block.
 
     headerlengths : list[int]
-        List of length for the headers of each data block.
+        List of length for the headers of each data block. 'None' for rinex3.
 
     obstimes : list[datetime.datetime]
         List of time of measurement for each measurement epoch.
@@ -213,7 +219,8 @@ def _readheader_v3(lines):
     for satlist in epochsatlists:
         satset = satset.union(satlist)
 
-    return header, headerlines, obstimes, epochsatlists, satset
+    headerlengths = None
+    return header, headerlines, headerlengths, obstimes, epochsatlists, satset
 
 
 def _converttofloat(numberstr):
@@ -221,6 +228,59 @@ def _converttofloat(numberstr):
         return float(numberstr)
     except ValueError:
         return np.nan
+
+
+def _readblocks(lines, rinexversion, header, headerlines, headerlengths, epochsatlists, satset):
+    """ Read and return information in the blocks for the RINEX file
+
+    Parameters
+    ----------
+    lines : list[str]
+        List of each line in the RINEX file.
+
+    rinexversion : str
+        Version number for the RINEX file.
+
+    header : dict
+        Dict containing the header information from the RINEX file.
+
+    headerlines : list[int]
+        List of starting line for the headers of each data block.
+
+    headerlengths : list[int]
+        List of length for the headers of each data block.
+
+    satlists : list[list[str]]
+        List containing lists of satellites present in each block.
+
+    satset : set(str)
+        Set containing all satellites in the data.
+
+    Returns
+    -------
+    observationdata : dict
+        Dict with data-arrays.
+
+    satlists : dict
+        Dict with lists of visible satellites.
+
+    prntoidx : dict
+        Dict with translation dicts.
+
+    obstypes : dict
+        Dict with observation types.
+    """
+    try:
+        if '2.1' in rinexversion:
+            return _readblocks_v21(lines, header, headerlines, headerlengths, epochsatlists, satset)
+        elif '3.1' in rinexversion:
+            return _readblocks_v3(lines, header, headerlines, epochsatlists, satset)
+        else:
+            raise RinexError('RINEX v%s is not supported.' % rinexversion)
+
+    except KeyError as e:
+        raise RinexError('Missing required header %s' % str(e))
+
 
 
 def _readblocks_v21(lines, header, headerlines, headerlengths, epochsatlists, satset):
@@ -454,25 +514,9 @@ def processrinexfile(filename, savefile=None):
     with open(filename, 'r') as f:
         lines = f.read().splitlines(True)
 
-    if '2.1' in rinexversion:
-        try:
-            header, headerlines, headerlengths, obstimes, epochsatlists, satset = _readheader_v21x(lines)
-        except KeyError as e:
-            raise RinexError('Missing required header %s' % str(e))
-
-        observationdata, satlists, prntoidx, obstypes = _readblocks_v21(lines, header,
-                                                                         headerlines, headerlengths,
-                                                                         epochsatlists, satset)
-    elif '3.' in rinexversion:
-        try:
-            header, headerlines, obstimes, epochsatlists, satset = _readheader_v3(lines)
-        except KeyError as e:
-            raise RinexError('Missing required header %s' % str(e))
-        observationdata, satlists, prntoidx, obstypes = _readblocks_v3(lines, header,
-                                                                        headerlines,
-                                                                        epochsatlists, satset)
-    else:
-        raise RinexError('RINEX v%s is not supported.' % rinexversion)
+    header, headerlines, headerlengths, obstimes, epochsatlists, satset = _readheader(lines, rinexversion)
+    observationdata, satlists, prntoidx, obstypes = _readblocks(lines, rinexversion, header, headerlines,
+                                                                headerlengths, epochsatlists, satset)
 
     if savefile is not None:
         saverinextonpz(savefile, observationdata, satlists, prntoidx, obstypes, header, obstimes)
