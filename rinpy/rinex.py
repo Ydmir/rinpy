@@ -273,7 +273,7 @@ def _readblocks(lines, rinexversion, header, headerlines, headerlengths, epochsa
     try:
         if '2.1' in rinexversion:
             return _readblocks_v21(lines, header, headerlines, headerlengths, epochsatlists, satset)
-        elif '3.1' in rinexversion:
+        elif '3' in rinexversion:
             return _readblocks_v3(lines, header, headerlines, epochsatlists, satset)
         else:
             raise RinexError('RINEX v%s is not supported.' % rinexversion)
