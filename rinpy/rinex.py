@@ -524,6 +524,98 @@ def processrinexfile(filename, savefile=None):
     return observationdata, satlists, prntoidx, obstypes, header, obstimes
 
 
+def mergerinexfiles(filelist, savefile=None):
+    """ Process several rinexfiles and merges them into one file.
+
+    Can be used to for example merge several rinexfiles from the same day to a single file. All files must be from the
+    same receiver and have the same version. No guarantees are given if files are from different receivers.
+
+    !!! Currently only functional for RINEX3. !!!
+
+
+    Parameters
+    ----------
+    filename : str
+        Filename of the rinex file
+
+    savefile : str, optional
+        Name of file to save data to. If supplied the data is saved to a compressed npz file.
+
+    Returns
+    -------
+    observationdata : dict
+        Dict with a nobs x nsats x nobstypes nd-array for each satellite constellation containing the measurements. The
+        keys of the dict correspond to the systemletter as used in RINEX files (G for GPS, R for GLONASS, etc).
+
+        nobs is the number of observations in the RINEX data, nsats the number of visible satellites for the particular
+        system during the whole measurement period, and nobstypes is the number of different properties recorded.
+
+    satlists : dict
+        Dict containing the full list of visible satellites during the whole measurement period for each satellite
+        constellation.
+
+    prntoidx : dict
+        Dict which for each constellation contains a dict which translates the PRN number into the index of the
+        satellite in the observationdata array.
+
+    obstypes : dict
+        Dict containing the observables recorded for each satellite constellation.
+
+    header : dict
+        Dict containing the header information from the first RINEX file.
+
+    obstimes : list[datetime.datetime]
+        List of time of measurement for each measurement epoch.
+    """
+
+    rinexversion = getrinexversion(filelist[0])
+
+    if '3' in rinexversion:
+
+        with open(filelist[0], 'r') as f:
+            lines = f.read().splitlines(True)
+
+        if len(filelist) > 1:
+            for filename in filelist[1:]:
+                with open(filename, 'r') as f:
+                    line = f.readline()
+                    while 'END OF HEADER' not in line:
+                        line = f.readline()
+                    lines.extend(f.read().splitlines(True))
+
+        header, headerlines, headerlengths, obstimes, epochsatlists, satset = _readheader(lines, rinexversion)
+        observationdata, satlists, prntoidx, obstypes = _readblocks(lines, rinexversion, header, headerlines,
+                                                                    headerlengths, epochsatlists, satset)
+
+        if savefile is not None:
+            saverinextonpz(savefile, observationdata, satlists, prntoidx, obstypes, header, obstimes)
+
+        return observationdata, satlists, prntoidx, obstypes, header, obstimes
+
+
+
+    else:
+        NotImplementedError('Multiple file merging is not implemented for RINEX 2 yet.')
+        #TODO: implement
+
+        #for filename in filelist:
+        #    if not getrinexversion(filename) == rinexversion:
+        #        raise RinexError('All files are not the same RINEX version.')
+
+        #observationdata, satlists, prntoidx, obstypes, header, obstimes = processrinexfile(filename[0], savefile=None)
+
+        #if len(filelist) > 1:
+        #    for filename in filelist[1:]:
+        #        observationdata_add, satlists_add, prntoidx_add, obstypes_add, header_add, obstimes_add = processrinexfile(filename, savefile=None)
+
+        #        for key in observationdata:
+        #            if satlists[key]
+        #                observationdata[key] = np.append(observationdata[key], observationdata_add[key])
+
+        # On another level? Sätta ihop data tidigare, dvs läsa alla headers först?
+
+
+
 def separateobservables(observationdata, obstypes):
     """
     Parameters
