@@ -98,7 +98,7 @@ def _readheader_v21x(lines):
             header[line[60:80].strip()] += "\n"+line[:60]
             # concatenate to the existing string
 
-    rowpersat = 1 + len(header['# / TYPES OF OBSERV'][6:].split()-1) // 5
+    rowpersat = 1 + (len(header['# / TYPES OF OBSERV'][6:].split())-1) // 5
 
     timeoffirstobs = [part for part in header['TIME OF FIRST OBS'].split()]
 
