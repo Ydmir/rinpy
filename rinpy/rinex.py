@@ -293,7 +293,7 @@ def _readblocks_v21(lines, header, headerlines, headerlengths, epochsatlists, sa
 
     header : dict
         Dict containing the header information from the RINEX file.
-        
+
     headerlines : list[int]
         List of starting line for the headers of each data block.
 
@@ -326,7 +326,7 @@ def _readblocks_v21(lines, header, headerlines, headerlengths, epochsatlists, sa
     """
     observables = header['# / TYPES OF OBSERV'][6:].split()
     nobstypes = len(observables)
-    rowpersat = 1 + nobstypes // 5
+    rowpersat = 1 + (nobstypes-1) // 5
     nepochs = len(headerlines)
 
     systemletters = set([letter for letter in set(''.join(satset)) if letter.isalpha()])
