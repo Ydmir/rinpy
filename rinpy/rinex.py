@@ -282,7 +282,6 @@ def _readblocks(lines, rinexversion, header, headerlines, headerlengths, epochsa
         raise RinexError('Missing required header %s' % str(e))
 
 
-
 def _readblocks_v21(lines, header, headerlines, headerlengths, epochsatlists, satset):
     """ Read the lines of data.
 
@@ -454,7 +453,12 @@ def _readblocks_v3(lines, header, headerlines, epochsatlists, satset):
 
             systemletter = sat[0]
             prn = int(sat[1:])
-
+            
+            if len(datastring) < parser[systemletter].size:
+                # If a record with missing data is truncated instead of filled with blanks we fill up the remaining part
+                # with blanks:
+                datastring = datastring + ' ' * (parser[systemletter].size - len(datastring))
+                
             try:
                 data = np.array([_converttofloat(number.decode('ascii'))
                                  for number in parser[systemletter].unpack_from(datastring.encode('ascii'))])
