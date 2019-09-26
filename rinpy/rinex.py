@@ -336,6 +336,8 @@ def _readblocks_v21(lines, header, headerlines, headerlengths, epochsatlists, sa
     obstypes = {}
 
     for sat in satset:
+        if sat[0] not in satlists:
+            continue
         satlists[sat[0]].append(int(sat[1:]))
 
     for letter in systemletters:
@@ -358,6 +360,10 @@ def _readblocks_v21(lines, header, headerlines, headerlengths, epochsatlists, sa
 
                 systemletter = sat[0]
                 prn = int(sat[1:])
+            
+                if systemletter not in observationdata:
+                    print("Observation without corresponding header: \n%s" % datastring)
+                    continue
 
                 observationdata[systemletter][iepoch, prntoidx[systemletter][prn], :] = data
             except struct.error:
@@ -429,6 +435,8 @@ def _readblocks_v3(lines, header, headerlines, epochsatlists, satset):
     parser = {}
 
     for sat in satset:
+        if sat[0] not in satlists:
+            continue
         satlists[sat[0]].append(int(sat[1:]))
 
     for letter in systemletters:
@@ -453,6 +461,10 @@ def _readblocks_v3(lines, header, headerlines, epochsatlists, satset):
 
             systemletter = sat[0]
             prn = int(sat[1:])
+            
+            if systemletter not in parser:
+                print("Observation without corresponding header: \n%s" % datastring)
+                continue
             
             if len(datastring) < parser[systemletter].size:
                 # If a record with missing data is truncated instead of filled with blanks we fill up the remaining part
@@ -688,7 +700,10 @@ def loadrinexfromnpz(npzfile):
     observationdata, satlists, prntoidx, obstypes, header, obstimes: dict
         Data in the same format as returned by processrinexfile
     """
-    rawdata = np.load(npzfile)
+    try:
+        rawdata = np.load(npzfile, allow_pickle=True)
+    except TypeError:
+        rawdata = np.load(npzfile)
 
     observationdata = {}
     satlists = {}
