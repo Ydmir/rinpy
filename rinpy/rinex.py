@@ -126,7 +126,7 @@ def _readheader_v21x(lines):
                                                   hour=int(hour),
                                                   minute=int(minute),
                                                   second=int(float(second)),
-                                                  microsecond=int(float(second) % 1 * 100000)))
+                                                  microsecond=int(float(second) % 1 * 1000000)))
 
                 numsats = int(lines[i][29:32])  # Number of visible satellites %i3
                 headerlengths.append(1 + (numsats-1)//12)  # number of lines in header, depends on how many svs on view
@@ -195,7 +195,7 @@ def _readheader_v3(lines):
                                                   hour=int(hour),
                                                   minute=int(minute),
                                                   second=int(float(second)),
-                                                  microsecond=int(float(second) % 1 * 100000)))
+                                                  microsecond=int(float(second) % 1 * 1000000)))
 
                 numsats = int(lines[i][33:35])  # Number of visible satellites %i3
 
